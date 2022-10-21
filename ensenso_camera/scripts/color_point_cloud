@@ -7,6 +7,7 @@ from actionlib_msgs.msg import GoalStatus
 from ensenso_camera_msgs.msg import RequestDataAction, RequestDataGoal
 from ensenso_camera_msgs.msg import RequestDataMonoAction, RequestDataMonoGoal
 from ensenso_camera_msgs.msg import TexturedPointCloudAction, TexturedPointCloudGoal
+from ensenso_camera_msgs.msg import TelecentricProjectionAction, TelecentricProjectionGoal
 
 
 def main():
@@ -20,12 +21,14 @@ def main():
     request_stereo_data_client_name = stereo_namespace + "/request_data"
     request_mono_data_client_name = mono_namespace + "/request_data"
     texture_point_cloud_client_name = stereo_namespace + "/texture_point_cloud"
+    telecentric_projection_client_name = stereo_namespace + "/telecentric_projection"
 
     request_stereo_data_client = actionlib.SimpleActionClient(request_stereo_data_client_name, RequestDataAction)
     request_mono_data_client = actionlib.SimpleActionClient(request_mono_data_client_name, RequestDataMonoAction)
     texture_point_cloud_client = actionlib.SimpleActionClient(texture_point_cloud_client_name, TexturedPointCloudAction)
+    telecentric_projection = actionlib.SimpleActionClient(telecentric_projection_client_name, TelecentricProjectionAction)
 
-    clients_names = [request_stereo_data_client_name, request_mono_data_client_name, texture_point_cloud_client_name]
+    clients_names = [request_stereo_data_client_name, request_mono_data_client_name, texture_point_cloud_client_name, telecentric_projection_client_name]
     clients = [request_stereo_data_client, request_mono_data_client, texture_point_cloud_client]
     for client_name, client in zip(clients_names, clients):
         rospy.loginfo("Trying to connect to: {}".format(client_name))

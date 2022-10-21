@@ -1050,7 +1050,7 @@ void StereoCamera::onTelecentricProjection(ensenso_camera_msgs::TelecentricProje
   }
   else
   {
-    transform = getLatestTransform(tfBuffer, params.targetFrame, goal->frame);
+    transform = getLatestTransform(tfBuffer, "216415_optical_frame", "optical_frame_4103890740");
   }
 
   int pixelScale = goal->pixel_scale != 0. ? goal->pixel_scale : 1;
