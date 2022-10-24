@@ -1,6 +1,7 @@
 // Do not change the order of this block. Otherwise getBinaryData with CV::mat overload will not be recognized
 #include <cv_bridge/cv_bridge.h>
 #include "ensenso_camera/image_utilities.h"
+#include "ensenso_camera/pose_utilities.h"
 
 #include "ensenso_camera/conversion.h"
 
@@ -11,6 +12,16 @@
 #include <ros/ros.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/distortion_models.h>
+
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>  // Needed for conversion from geometry_msgs to tf2::Transform
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <string>
+#include <tf2_ros/buffer.h>
+#include <tf2/LinearMath/Transform.h>
+
 
 std::string imageEncoding(bool isFloat, int channels, int bytesPerElement)
 {
@@ -174,7 +185,7 @@ ros::Time timestampFromNxLibNode(NxLibItem const& node)
   return ros::Time(ensenso_conversion::nxLibToRosTimestamp(timestamp));
 }
 
-ImagePtr depthImageFromNxLibNode(NxLibItem const& node, std::string const& frame)
+ImagePtr depthImageFromNxLibNode(NxLibItem const& node, std::string const& frame,  tf2::Transform transform)
 {
   double timestamp;
   cv::Mat pointMap;
@@ -182,16 +193,29 @@ ImagePtr depthImageFromNxLibNode(NxLibItem const& node, std::string const& frame
 
   cv::Mat depthImage;
   cv::extractChannel(pointMap, depthImage, 2);
-
-  // Convert units from millimeters to meters.
   depthImage /= 1000.0;
+  // Convert units from millimeters to meters.
+  std::cout << "Cols: " << depthImage.cols << " Rows: " << depthImage.rows << std::endl;
+  std::cout << "Transform: " << transform.getOrigin().getX() << " " <<  transform.getOrigin().getY() << " "  << transform.getOrigin().getZ() <<std::endl;
+  for(int index=0;index<depthImage.cols*depthImage.rows;index++){
 
+        int row = index / depthImage.cols;
+        int col = index - (depthImage.rows * depthImage.cols);
+
+        tf2::Vector3 point(0,0,depthImage.at<float>(index));
+        tf2::Vector3 final_point = transform*point;
+        depthImage.at<float>(index) = (float) final_point.getZ();
+
+    }
+
+  std::cout << "Left!!" << std::endl;
   // Convert cv mat to ros image.
   cv_bridge::CvImage out_msg;
   out_msg.header.stamp.fromSec(ensenso_conversion::nxLibToRosTimestamp(timestamp));
   out_msg.header.frame_id = frame;
   out_msg.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
   out_msg.image = depthImage;
+
 
   return out_msg.toImageMsg();
 }

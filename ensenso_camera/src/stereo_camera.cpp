@@ -450,33 +450,33 @@ void StereoCamera::onRequestData(ensenso_camera_msgs::RequestDataGoalConstPtr co
 
   PREEMPT_ACTION_IF_REQUESTED
 
-  if (requestDepthImage)
-  {
-    // In case camera and target frame are different, the point cloud is recomputed with the relative(toWorld)-flag,
-    // such that the resulting point cloud (and thus the depth image) is transformed by the NxLib with the transform
-    // stored in the stereo camera's link node.
-    if (params.cameraFrame != params.targetFrame)
-    {
-      NxLibCommand computePointMap(cmdComputePointMap, params.serial);
-      computePointMap.parameters()[itmCameras] = params.serial;
-      computePointMap.parameters()[itmRelative] = true;
-      computePointMap.execute();
-    }
-
-    auto depthImage = depthImageFromNxLibNode(cameraNode[itmImages][itmPointMap], params.targetFrame);
-
-    depthImageCameraInfo->header.stamp = depthImage->header.stamp;
-
-    if (goal->include_results_in_response)
-    {
-      result.depth_image = *depthImage;
-      result.depth_image_info = *depthImageCameraInfo;
-    }
-    if (publishResults)
-    {
-      depthImagePublisher.publish(depthImage, depthImageCameraInfo);
-    }
-  }
+//  if (requestDepthImage)
+//  {
+//    // In case camera and target frame are different, the point cloud is recomputed with the relative(toWorld)-flag,
+//    // such that the resulting point cloud (and thus the depth image) is transformed by the NxLib with the transform
+//    // stored in the stereo camera's link node.
+//    if (params.cameraFrame != params.targetFrame)
+//    {
+//      NxLibCommand computePointMap(cmdComputePointMap, params.serial);
+//      computePointMap.parameters()[itmCameras] = params.serial;
+//      computePointMap.parameters()[itmRelative] = true;
+//      computePointMap.execute();
+//    }
+//
+//    auto depthImage = depthImageFromNxLibNode(cameraNode[itmImages][itmPointMap], params.targetFrame);
+//
+//    depthImageCameraInfo->header.stamp = depthImage->header.stamp;
+//
+//    if (goal->include_results_in_response)
+//    {
+//      result.depth_image = *depthImage;
+//      result.depth_image_info = *depthImageCameraInfo;
+//    }
+//    if (publishResults)
+//    {
+//      depthImagePublisher.publish(depthImage, depthImageCameraInfo);
+//    }
+//  }
 
   requestDataServer->setSucceeded(result);
 
@@ -1044,19 +1044,13 @@ void StereoCamera::onTelecentricProjection(ensenso_camera_msgs::TelecentricProje
   tf2::Transform transform;
   std::string publishingFrame = useViewPose ? params.targetFrame : goal->frame;
 
-  if (useViewPose)
-  {
-    transform = fromMsg(goal->view_pose);
-  }
-  else
-  {
-    transform = getLatestTransform(tfBuffer, "216415_optical_frame", "optical_frame_4103890740");
-  }
+
+  transform = getLatestTransform(tfBuffer, "optical_frame_4104016857", "205659_optical_frame");
 
   int pixelScale = goal->pixel_scale != 0. ? goal->pixel_scale : 1;
   double scaling = goal->scaling != 0. ? goal->scaling : 1.0;
-  int sizeWidth = goal->size_width != 0 ? goal->size_width : 1024;
-  int sizeHeight = goal->size_height != 0. ? goal->size_height : 768;
+  int sizeWidth = goal->size_width != 0 ? goal->size_width : 1600;
+  int sizeHeight = goal->size_height != 0. ? goal->size_height : 1200;
   bool useOpenGL = goal->use_opengl == 1;
   RenderPointMapParamsTelecentric renderParams(useOpenGL, pixelScale, scaling, sizeWidth, sizeHeight, transform);
 
@@ -1067,6 +1061,10 @@ void StereoCamera::onTelecentricProjection(ensenso_camera_msgs::TelecentricProje
     renderPointMap.parameters()[itmCameras][i] = goal->serials[i];
   }
   setRenderParams(renderPointMap.parameters(), &renderParams);
+  renderPointMap.parameters()[itmTexture] = true;
+  renderPointMap.parameters()[itmCamera] = "4104016857";
+  renderPointMap.parameters()[itmNear] = 1;
+  renderPointMap.parameters()[itmFar] = 3;
 
   renderPointMap.execute();
 
@@ -1103,7 +1101,7 @@ void StereoCamera::onTelecentricProjection(ensenso_camera_msgs::TelecentricProje
 
     if (goal->request_depth_image)
     {
-      auto renderedImage = retrieveRenderedDepthMap(renderPointMap.result(), goal->frame);
+      auto renderedImage = retrieveRenderedDepthMap(renderPointMap.result(), "optical_frame_4104016857", transform);
 
       if (goal->publish_results)
       {
